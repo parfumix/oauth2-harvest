@@ -88,7 +88,7 @@ class HarvestProvider extends AbstractProvider {
      * @return ResourceOwnerInterface
      */
     protected function createResourceOwner(array $response, AccessToken $token) {
-        // TODO: Implement createResourceOwner() method.
+        return new HarvestResourceOwner($response);
     }
 
     /**
