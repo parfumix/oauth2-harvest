@@ -3,14 +3,17 @@
 namespace Harvest;
 
 use League\OAuth2\Client\Provider\AbstractProvider;
-use League\OAuth2\Client\Provider\Exception\IdentityProviderException;
 use League\OAuth2\Client\Provider\ResourceOwnerInterface;
 use League\OAuth2\Client\Token\AccessToken;
 use Psr\Http\Message\ResponseInterface;
 
+class HarvestAuthorizationException extends \Exception {}
+
 class HarvestProvider extends AbstractProvider {
 
     protected $apiUrl = 'https://api.harvestapp.com';
+
+    protected $appDetails = [];
 
     /**
      * Returns the base URL for authorizing a client.
@@ -54,19 +57,26 @@ class HarvestProvider extends AbstractProvider {
      * @return array
      */
     protected function getDefaultScopes() {
-        return [];
+        return ['harvest:all'];
     }
 
     /**
      * Checks a provider response for errors.
      *
-     * @throws IdentityProviderException
      * @param  ResponseInterface $response
      * @param  array|string $data Parsed response data
-     * @return void
+     * @throws HarvestAuthorizationException
      */
     protected function checkResponse(ResponseInterface $response, $data) {
-        // TODO: Implement checkResponse() method.
+        if ($response->getStatusCode() >= 400) {
+            throw new HarvestAuthorizationException(
+                $response->getReasonPhrase(), $response->getStatusCode()
+            );
+        } elseif (isset($data['error'])) {
+            throw new HarvestAuthorizationException(
+                $data['error'] ?? $response->getReasonPhrase(), $response->getStatusCode()
+            );
+        }
     }
 
     /**
@@ -80,4 +90,17 @@ class HarvestProvider extends AbstractProvider {
     protected function createResourceOwner(array $response, AccessToken $token) {
         // TODO: Implement createResourceOwner() method.
     }
+
+    /**
+     * Set up additional headers .
+     *
+     * @return array
+     */
+    public function getDefaultHeaders() {
+        return array(
+            'Accept' => 'application/json',
+            'User-Agent' => sprintf('%s (%s)', $this->appDetails['name'] ?? 'MyApp', $this->appDetails['email'] ?? 'example@mail.com')
+        );
+    }
+
 }
